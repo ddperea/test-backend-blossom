@@ -81,6 +81,8 @@ cp .env.example .env
 # Editar .env con tus credenciales
 ```
 
+   Nota: el archivo `.env` con las credenciales ya fue enviado al evaluador junto con el test; si lo necesitas solo colocalo en la raiz del proyecto.
+
 4. **Iniciar Redis con Docker**
 ```bash
 docker run -d --name redis-blossom -p 6379:6379 redis:alpine

@@ -1,6 +1,6 @@
-import characterService from '../services/character.service';
-import { CharacterFilters } from '../repositories/character.repository';
-import rickMortyApiClient from '../services/rickMortyApi.client';
+import characterService from '../../services/character.service';
+import { CharacterFilters } from '../../repositories/character.repository';
+import rickMortyApiClient from '../../services/rickMortyApi.client';
 
 /**
  * Resolvers de GraphQL

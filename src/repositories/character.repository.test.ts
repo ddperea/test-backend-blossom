@@ -5,6 +5,7 @@ import Character from '../models/Character';
 // Mock del modelo Character
 jest.mock('../models/Character', () => ({
   findAll: jest.fn(),
+  findAndCountAll: jest.fn(),
   findByPk: jest.fn(),
   create: jest.fn(),
   bulkCreate: jest.fn(),
@@ -45,24 +46,50 @@ describe('CharacterRepository', () => {
   });
 
   describe('findAll', () => {
-    it('should return all characters from database', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue(mockCharacters);
+    it('should return all characters from database with count', async () => {
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: mockCharacters,
+        count: 2,
+      });
 
       const result = await CharacterRepository.findAll();
 
-      expect(Character.findAll).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(mockCharacters);
-      expect(result).toHaveLength(2);
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
+      });
+      expect(result.rows).toEqual(mockCharacters);
+      expect(result.count).toBe(2);
     });
 
-    it('should return empty array when no characters exist', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([]);
+    it('should return empty result when no characters exist', async () => {
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [],
+        count: 0,
+      });
 
       const result = await CharacterRepository.findAll();
 
-      expect(Character.findAll).toHaveBeenCalledTimes(1);
-      expect(result).toEqual([]);
-      expect(result).toHaveLength(0);
+      expect(result.rows).toEqual([]);
+      expect(result.count).toBe(0);
+    });
+
+    it('should apply pagination options', async () => {
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 2,
+      });
+
+      const result = await CharacterRepository.findAll({ offset: 0, limit: 1 });
+
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
+        offset: 0,
+        limit: 1,
+        order: [['id', 'ASC']],
+      });
+      expect(result.rows).toHaveLength(1);
+      expect(result.count).toBe(2);
     });
   });
 
@@ -88,72 +115,105 @@ describe('CharacterRepository', () => {
 
   describe('findWithFilters', () => {
     it('should filter by name with iLike (case-insensitive partial match)', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([mockCharacter]);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const filters: CharacterFilters = { name: 'Rick' };
       await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
         where: {
           name: { [Op.iLike]: '%Rick%' },
         },
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
       });
     });
 
     it('should filter by status with exact match', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([mockCharacter]);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const filters: CharacterFilters = { status: 'Alive' };
       await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
         where: {
           status: 'Alive',
         },
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
       });
     });
 
     it('should filter by species with exact match', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([mockCharacter]);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const filters: CharacterFilters = { species: 'Human' };
       await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
         where: {
           species: 'Human',
         },
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
       });
     });
 
     it('should filter by gender with exact match', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([mockCharacter]);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const filters: CharacterFilters = { gender: 'Male' };
       await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
         where: {
           gender: 'Male',
         },
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
       });
     });
 
     it('should filter by origin with iLike (case-insensitive partial match)', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([mockCharacter]);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const filters: CharacterFilters = { origin: 'Earth' };
       await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
         where: {
           origin: { [Op.iLike]: '%Earth%' },
         },
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
       });
     });
 
     it('should apply multiple filters at once', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([mockCharacter]);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const filters: CharacterFilters = {
         name: 'Rick',
@@ -164,7 +224,7 @@ describe('CharacterRepository', () => {
       };
       await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
         where: {
           name: { [Op.iLike]: '%Rick%' },
           status: 'Alive',
@@ -172,26 +232,61 @@ describe('CharacterRepository', () => {
           gender: 'Male',
           origin: { [Op.iLike]: '%Earth%' },
         },
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
       });
     });
 
-    it('should return empty array when no matches found', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue([]);
+    it('should return empty result when no matches found', async () => {
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [],
+        count: 0,
+      });
 
       const filters: CharacterFilters = { name: 'Nonexistent' };
       const result = await CharacterRepository.findWithFilters(filters);
 
-      expect(result).toEqual([]);
+      expect(result.rows).toEqual([]);
+      expect(result.count).toBe(0);
     });
 
     it('should return all characters when no filters provided', async () => {
-      (Character.findAll as jest.Mock).mockResolvedValue(mockCharacters);
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: mockCharacters,
+        count: 2,
+      });
 
       const filters: CharacterFilters = {};
       const result = await CharacterRepository.findWithFilters(filters);
 
-      expect(Character.findAll).toHaveBeenCalledWith({ where: {} });
-      expect(result).toEqual(mockCharacters);
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
+        where: {},
+        offset: undefined,
+        limit: undefined,
+        order: [['id', 'ASC']],
+      });
+      expect(result.rows).toEqual(mockCharacters);
+      expect(result.count).toBe(2);
+    });
+
+    it('should apply pagination with filters', async () => {
+      (Character.findAndCountAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 5,
+      });
+
+      const filters: CharacterFilters = { status: 'Alive' };
+      const result = await CharacterRepository.findWithFilters(filters, { offset: 0, limit: 1 });
+
+      expect(Character.findAndCountAll).toHaveBeenCalledWith({
+        where: { status: 'Alive' },
+        offset: 0,
+        limit: 1,
+        order: [['id', 'ASC']],
+      });
+      expect(result.rows).toHaveLength(1);
+      expect(result.count).toBe(5);
     });
   });
 

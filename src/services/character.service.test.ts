@@ -23,9 +23,19 @@ jest.mock('../cache/cache.service', () => ({
   invalidateAll: jest.fn(),
 }));
 
+/**
+ * Helper para crear un mock de modelo Sequelize con toJSON()
+ * Simula el comportamiento real de un modelo Sequelize
+ */
+const createMockSequelizeModel = <T extends Record<string, unknown>>(data: T) => ({
+  ...data,
+  toJSON: () => data,
+  dataValues: data,
+});
+
 describe('CharacterService', () => {
-  // Mock de datos de personajes
-  const mockCharacter = {
+  // Mock de datos de personajes (objetos planos para comparaciones)
+  const mockCharacterData = {
     id: 1,
     name: 'Rick Sanchez',
     status: 'Alive',
@@ -36,66 +46,107 @@ describe('CharacterService', () => {
     image: 'https://rickandmortyapi.com/api/character/avatar/1.jpeg',
   };
 
+  const mockCharacterData2 = {
+    id: 2,
+    name: 'Morty Smith',
+    status: 'Alive',
+    species: 'Human',
+    type: '',
+    gender: 'Male',
+    origin: 'Earth (C-137)',
+    image: 'https://rickandmortyapi.com/api/character/avatar/2.jpeg',
+  };
+
+  // Mocks de modelos Sequelize (con toJSON)
+  const mockCharacter = createMockSequelizeModel(mockCharacterData);
   const mockCharacters = [
-    mockCharacter,
-    {
-      id: 2,
-      name: 'Morty Smith',
-      status: 'Alive',
-      species: 'Human',
-      type: '',
-      gender: 'Male',
-      origin: 'Earth (C-137)',
-      image: 'https://rickandmortyapi.com/api/character/avatar/2.jpeg',
-    },
+    createMockSequelizeModel(mockCharacterData),
+    createMockSequelizeModel(mockCharacterData2),
   ];
+
+  // Datos planos para cache (lo que retorna el service)
+  const mockCharactersPlain = [mockCharacterData, mockCharacterData2];
+  
+  // Respuesta paginada esperada
+  const mockPaginatedResponse = {
+    data: mockCharactersPlain,
+    total: 2,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('getAllCharacters', () => {
-    it('should return characters from cache when available', async () => {
-      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(mockCharacters);
+    it('should return paginated characters from cache when available', async () => {
+      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(mockPaginatedResponse);
 
       const result = await CharacterService.getAllCharacters();
 
-      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({});
+      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({ _page: 1, _limit: 20 });
       expect(characterRepository.findAll).not.toHaveBeenCalled();
-      expect(result).toEqual(mockCharacters);
+      expect(result).toEqual(mockPaginatedResponse);
     });
 
     it('should fetch from repository and cache when cache miss', async () => {
       (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(null);
-      (characterRepository.findAll as jest.Mock).mockResolvedValue(mockCharacters);
+      (characterRepository.findAll as jest.Mock).mockResolvedValue({
+        rows: mockCharacters,
+        count: 2,
+      });
 
       const result = await CharacterService.getAllCharacters();
 
-      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({});
-      expect(characterRepository.findAll).toHaveBeenCalledTimes(1);
-      expect(cacheService.setCharactersByFilters).toHaveBeenCalledWith({}, mockCharacters);
-      expect(result).toEqual(mockCharacters);
+      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({ _page: 1, _limit: 20 });
+      expect(characterRepository.findAll).toHaveBeenCalledWith({ offset: 0, limit: 20 });
+      expect(cacheService.setCharactersByFilters).toHaveBeenCalled();
+      expect(result.data).toEqual(mockCharactersPlain);
+      expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
     });
 
-    it('should return empty array when no characters in database', async () => {
+    it('should return empty data when no characters in database', async () => {
       (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(null);
-      (characterRepository.findAll as jest.Mock).mockResolvedValue([]);
+      (characterRepository.findAll as jest.Mock).mockResolvedValue({
+        rows: [],
+        count: 0,
+      });
 
       const result = await CharacterService.getAllCharacters();
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(0);
+    });
+
+    it('should apply pagination parameters', async () => {
+      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(null);
+      (characterRepository.findAll as jest.Mock).mockResolvedValue({
+        rows: [mockCharacters[0]],
+        count: 2,
+      });
+
+      const result = await CharacterService.getAllCharacters({ page: 2, limit: 1 });
+
+      expect(characterRepository.findAll).toHaveBeenCalledWith({ offset: 1, limit: 1 });
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(1);
+      expect(result.totalPages).toBe(2);
     });
   });
 
   describe('getCharacterById', () => {
     it('should return character from cache when available', async () => {
-      (cacheService.getCharacterById as jest.Mock).mockResolvedValue(mockCharacter);
+      (cacheService.getCharacterById as jest.Mock).mockResolvedValue(mockCharacterData);
 
       const result = await CharacterService.getCharacterById(1);
 
       expect(cacheService.getCharacterById).toHaveBeenCalledWith(1);
       expect(characterRepository.findById).not.toHaveBeenCalled();
-      expect(result).toEqual(mockCharacter);
+      expect(result).toEqual(mockCharacterData);
     });
 
     it('should fetch from repository and cache when cache miss', async () => {
@@ -106,8 +157,8 @@ describe('CharacterService', () => {
 
       expect(cacheService.getCharacterById).toHaveBeenCalledWith(1);
       expect(characterRepository.findById).toHaveBeenCalledWith(1);
-      expect(cacheService.setCharacterById).toHaveBeenCalledWith(1, mockCharacter);
-      expect(result).toEqual(mockCharacter);
+      expect(cacheService.setCharacterById).toHaveBeenCalledWith(1, mockCharacterData);
+      expect(result).toEqual(mockCharacterData);
     });
 
     it('should throw error when character not found', async () => {
@@ -122,45 +173,66 @@ describe('CharacterService', () => {
 
   describe('searchCharacters', () => {
     const filters: CharacterFilters = { name: 'Rick', status: 'Alive' };
+    
+    const mockFilteredPaginatedResponse = {
+      data: [mockCharacterData],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    };
 
-    it('should delegate to getAllCharacters when no filters provided', async () => {
-      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(mockCharacters);
-
-      const result = await CharacterService.searchCharacters({});
-
-      // Verifica que usa la lógica de getAllCharacters (filtros vacíos)
-      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({});
-      expect(result).toEqual(mockCharacters);
-    });
-
-    it('should return characters from cache when available', async () => {
-      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue([mockCharacter]);
+    it('should return paginated characters from cache when available', async () => {
+      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(mockFilteredPaginatedResponse);
 
       const result = await CharacterService.searchCharacters(filters);
 
-      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith(filters);
+      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({ ...filters, _page: 1, _limit: 20 });
       expect(characterRepository.findWithFilters).not.toHaveBeenCalled();
-      expect(result).toEqual([mockCharacter]);
+      expect(result).toEqual(mockFilteredPaginatedResponse);
     });
 
     it('should fetch from repository and cache when cache miss', async () => {
       (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(null);
-      (characterRepository.findWithFilters as jest.Mock).mockResolvedValue([mockCharacter]);
+      (characterRepository.findWithFilters as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 1,
+      });
 
       const result = await CharacterService.searchCharacters(filters);
 
-      expect(characterRepository.findWithFilters).toHaveBeenCalledWith(filters);
-      expect(cacheService.setCharactersByFilters).toHaveBeenCalledWith(filters, [mockCharacter]);
-      expect(result).toEqual([mockCharacter]);
+      expect(characterRepository.findWithFilters).toHaveBeenCalledWith(filters, { offset: 0, limit: 20 });
+      expect(cacheService.setCharactersByFilters).toHaveBeenCalled();
+      expect(result.data).toEqual([mockCharacterData]);
+      expect(result.total).toBe(1);
     });
 
-    it('should return empty array when no matches found', async () => {
+    it('should return empty result when no matches found', async () => {
       (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(null);
-      (characterRepository.findWithFilters as jest.Mock).mockResolvedValue([]);
+      (characterRepository.findWithFilters as jest.Mock).mockResolvedValue({
+        rows: [],
+        count: 0,
+      });
 
       const result = await CharacterService.searchCharacters({ name: 'Nonexistent' });
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('should apply pagination with filters', async () => {
+      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(null);
+      (characterRepository.findWithFilters as jest.Mock).mockResolvedValue({
+        rows: [mockCharacter],
+        count: 5,
+      });
+
+      const result = await CharacterService.searchCharacters(filters, { page: 2, limit: 1 });
+
+      expect(characterRepository.findWithFilters).toHaveBeenCalledWith(filters, { offset: 1, limit: 1 });
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(1);
+      expect(result.totalPages).toBe(5);
     });
   });
 
@@ -280,7 +352,10 @@ describe('CharacterService', () => {
     it('should demonstrate cache-first strategy for getAllCharacters', async () => {
       // Primera llamada - cache miss
       (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValueOnce(null);
-      (characterRepository.findAll as jest.Mock).mockResolvedValue(mockCharacters);
+      (characterRepository.findAll as jest.Mock).mockResolvedValue({
+        rows: mockCharacters,
+        count: 2,
+      });
 
       await CharacterService.getAllCharacters();
 
@@ -291,11 +366,11 @@ describe('CharacterService', () => {
       jest.clearAllMocks();
 
       // Segunda llamada - cache hit
-      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(mockCharacters);
+      (cacheService.getCharactersByFilters as jest.Mock).mockResolvedValue(mockPaginatedResponse);
 
       await CharacterService.getAllCharacters();
 
-      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({});
+      expect(cacheService.getCharactersByFilters).toHaveBeenCalledWith({ _page: 1, _limit: 20 });
       expect(characterRepository.findAll).not.toHaveBeenCalled(); // No debe llamar al repo
     });
 
@@ -307,13 +382,13 @@ describe('CharacterService', () => {
       await CharacterService.getCharacterById(1);
 
       expect(characterRepository.findById).toHaveBeenCalledTimes(1);
-      expect(cacheService.setCharacterById).toHaveBeenCalledWith(1, mockCharacter);
+      expect(cacheService.setCharacterById).toHaveBeenCalledWith(1, mockCharacterData);
 
       // Limpiar mocks para simular segunda llamada
       jest.clearAllMocks();
 
       // Segunda llamada - cache hit
-      (cacheService.getCharacterById as jest.Mock).mockResolvedValue(mockCharacter);
+      (cacheService.getCharacterById as jest.Mock).mockResolvedValue(mockCharacterData);
 
       await CharacterService.getCharacterById(1);
 

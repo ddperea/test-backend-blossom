@@ -1,19 +1,9 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import sequelize from '../config/database';
+import { CharacterAttributes } from '../types/character.types';
 
-// Definimos los atributos que tiene el modelo
-interface CharacterAttributes {
-  id: number;
-  name: string;
-  status: string;
-  species: string;
-  type?: string;
-  gender: string;
-  origin: string;
-  image: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+// Re-exportamos para que otros módulos puedan importar desde aquí si lo necesitan
+export { CharacterAttributes };
 
 // Definimos los atributos necesarios para crear un nuevo registro (id es obligatorio porque lo traemos de la API)
 interface CharacterCreationAttributes extends Optional<CharacterAttributes, 'type' | 'createdAt' | 'updatedAt'> {}

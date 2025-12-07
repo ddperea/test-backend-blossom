@@ -1,11 +1,12 @@
 {
   "name": "test-backend-senior-blossom",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API GraphQL para búsqueda de personajes de Rick & Morty con caché Redis y PostgreSQL",
+  "main": "dist/app.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/app.ts",
-    "start": "ts-node src/app.ts",
+    "dev": "tsx watch src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
     "seed": "ts-node src/scripts/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -13,9 +14,26 @@
     "test:integration": "jest --config jest.integration.config.js",
     "test:all": "npm run test && npm run test:integration"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "graphql",
+    "rick-and-morty",
+    "api",
+    "redis",
+    "cache",
+    "postgresql",
+    "typescript",
+    "express",
+    "apollo-server"
+  ],
+  "author": "Deimar Perea Moreno <ddpeream@github.com>",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ddpeream/test-backend-blossom.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "commonjs",
   "dependencies": {
     "@apollo/server": "^4.12.2",

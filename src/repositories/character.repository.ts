@@ -1,18 +1,9 @@
 import { Op } from 'sequelize';
 import Character from '../models/Character';
+import { CharacterFilters, PaginationOptions, PaginatedResult } from '../types/character.types';
 
-/**
- * Interfaz para los filtros de búsqueda de personajes
- * Corresponde a los filtros requeridos en el proyecto:
- * - Nombre, Estado, Especie, Género, Origen
- */
-export interface CharacterFilters {
-  name?: string;
-  status?: string;
-  species?: string;
-  gender?: string;
-  origin?: string;
-}
+// Re-exportamos para mantener compatibilidad con imports existentes
+export { CharacterFilters, PaginationOptions, PaginatedResult };
 
 /**
  * Repository de Characters
@@ -21,10 +12,15 @@ export interface CharacterFilters {
  */
 class CharacterRepository {
   /**
-   * Obtiene todos los personajes de la base de datos
+   * Obtiene todos los personajes de la base de datos con paginación opcional
    */
-  async findAll(): Promise<Character[]> {
-    return Character.findAll();
+  async findAll(pagination?: PaginationOptions): Promise<PaginatedResult<Character>> {
+    const { rows, count } = await Character.findAndCountAll({
+      offset: pagination?.offset,
+      limit: pagination?.limit,
+      order: [['id', 'ASC']],
+    });
+    return { rows, count };
   }
 
   /**
@@ -35,11 +31,11 @@ class CharacterRepository {
   }
 
   /**
-   * Busca personajes aplicando filtros opcionales
+   * Busca personajes aplicando filtros opcionales con paginación
    * Los filtros soportados son: name, status, species, gender, origin
    * La búsqueda por nombre es parcial (LIKE %nombre%)
    */
-  async findWithFilters(filters: CharacterFilters): Promise<Character[]> {
+  async findWithFilters(filters: CharacterFilters, pagination?: PaginationOptions): Promise<PaginatedResult<Character>> {
     const whereClause: any = {};
 
     // Búsqueda parcial por nombre (case-insensitive)
@@ -65,7 +61,14 @@ class CharacterRepository {
       whereClause.origin = { [Op.iLike]: `%${filters.origin}%` };
     }
 
-    return Character.findAll({ where: whereClause });
+    const { rows, count } = await Character.findAndCountAll({
+      where: whereClause,
+      offset: pagination?.offset,
+      limit: pagination?.limit,
+      order: [['id', 'ASC']],
+    });
+    
+    return { rows, count };
   }
 
   /**

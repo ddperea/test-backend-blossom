@@ -13,21 +13,32 @@ const sequelize = new Sequelize(
     dialect: 'postgres',
     protocol: 'postgres',
     dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
+      ssl: process.env.NODE_ENV === 'production' || process.env.POSTGRES_SSL === 'true'
+        ? { require: true, rejectUnauthorized: false }
+        : false
     },
     logging: false,
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
   }
 );
 
-export const testConnection = async () => {
+/**
+ * Verifica la conexión a PostgreSQL
+ * @throws Error si la conexión falla (fail-fast)
+ */
+export const testConnection = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
-    console.log('✅ Connection to Supabase has been established successfully.');
+    console.log('✅ PostgreSQL: Connection established successfully');
   } catch (error) {
-    console.error('❌ Unable to connect to the database:', error);
+    console.error('❌ PostgreSQL: Unable to connect to database');
+    console.error((error as Error).message);
+    throw error; // Fail-fast: propagar error para detener el servidor
   }
 };
 

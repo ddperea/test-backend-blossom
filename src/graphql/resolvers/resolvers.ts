@@ -1,5 +1,5 @@
 import characterService from '../../services/character.service';
-import { CharacterFilters } from '../../repositories/character.repository';
+import { CharacterFilters, PaginationInput } from '../../types/character.types';
 import rickMortyApiClient from '../../services/rickMortyApi.client';
 
 /**
@@ -9,10 +9,10 @@ import rickMortyApiClient from '../../services/rickMortyApi.client';
 export const resolvers = {
   Query: {
     /**
-     * Obtiene todos los personajes
+     * Obtiene todos los personajes con paginación opcional
      */
-    characters: async () => {
-      return characterService.getAllCharacters();
+    characters: async (_: any, { pagination }: { pagination?: PaginationInput }) => {
+      return characterService.getAllCharacters(pagination);
     },
 
     /**
@@ -27,11 +27,11 @@ export const resolvers = {
     },
 
     /**
-     * Busca personajes con filtros opcionales
+     * Busca personajes con filtros opcionales y paginación
      * Filtros: name, status, species, gender, origin
      */
-    searchCharacters: async (_: any, { filters }: { filters?: CharacterFilters }) => {
-      return characterService.searchCharacters(filters || {});
+    searchCharacters: async (_: any, { filters, pagination }: { filters?: CharacterFilters; pagination?: PaginationInput }) => {
+      return characterService.searchCharacters(filters || {}, pagination);
     },
 
     /**

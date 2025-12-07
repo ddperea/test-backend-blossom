@@ -1,7 +1,7 @@
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
-import { typeDefs } from './schema';
-import { resolvers } from './resolvers';
+import { typeDefs } from './schemas/schema';
+import { resolvers } from './resolvers/resolvers';
 import express from 'express';
 import cors from 'cors';
 

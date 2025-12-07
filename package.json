@@ -1,17 +1,39 @@
 {
   "name": "test-backend-senior-blossom",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API GraphQL para búsqueda de personajes de Rick & Morty con caché Redis y PostgreSQL",
+  "main": "dist/app.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/app.ts",
-    "start": "ts-node src/app.ts",
+    "dev": "tsx watch src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
     "seed": "ts-node src/scripts/seed.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --config jest.integration.config.js",
+    "test:all": "npm run test && npm run test:integration"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "graphql",
+    "rick-and-morty",
+    "api",
+    "redis",
+    "cache",
+    "postgresql",
+    "typescript",
+    "express",
+    "apollo-server"
+  ],
+  "author": "Deimar Perea Moreno <ddpeream@github.com>",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ddpeream/test-backend-blossom.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "type": "commonjs",
   "dependencies": {
     "@apollo/server": "^4.12.2",
@@ -23,23 +45,26 @@
     "graphql-request": "^7.3.5",
     "graphql-tag": "^2.12.6",
     "ioredis": "^5.8.2",
-    "jest": "^30.2.0",
     "node-cron": "^4.2.1",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1",
-    "ts-jest": "^29.4.6"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/node-cron": "^3.0.11",
+    "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.11",
     "sequelize-cli": "^6.6.3",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

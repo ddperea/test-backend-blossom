@@ -28,16 +28,31 @@ export const typeDefs = gql`
     origin: String
   }
 
+  # Input para paginación
+  input PaginationInput {
+    page: Int
+    limit: Int
+  }
+
+  # Respuesta paginada de personajes
+  type PaginatedCharacters {
+    data: [Character!]!
+    total: Int!
+    page: Int!
+    limit: Int!
+    totalPages: Int!
+  }
+
   # Queries disponibles
   type Query {
-    # Obtener todos los personajes
-    characters: [Character!]!
+    # Obtener todos los personajes (con paginación opcional)
+    characters(pagination: PaginationInput): PaginatedCharacters!
     
     # Obtener un personaje por ID
     character(id: Int!): Character
     
-    # Buscar personajes con filtros
-    searchCharacters(filters: CharacterFilterInput): [Character!]!
+    # Buscar personajes con filtros (con paginación opcional)
+    searchCharacters(filters: CharacterFilterInput, pagination: PaginationInput): PaginatedCharacters!
     
     # Obtener el conteo total de personajes
     characterCount: Int!

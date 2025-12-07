@@ -1,0 +1,510 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Rick & Morty Characters API",
+    "description": "## 🚀 API GraphQL para búsqueda de personajes de Rick & Morty\n\nEsta API permite buscar y consultar personajes de la serie Rick & Morty con sistema de caché en Redis para optimizar el rendimiento.\n\n### 🔗 Enlaces Útiles\n- [Apollo GraphQL Playground](/graphql) - Interfaz interactiva para probar queries\n- [Repositorio en GitHub](https://github.com/ddpeream/test-backend-blossom)\n- [API Rick & Morty Original](https://rickandmortyapi.com/)\n\n---\n\n## 📊 Tecnologías Utilizadas\n\n| Tecnología | Uso |\n|------------|-----|\n| Node.js + Express | Servidor web |\n| Apollo Server | GraphQL |\n| PostgreSQL (Supabase) | Base de datos |\n| Redis | Sistema de caché |\n| Sequelize | ORM |\n| TypeScript | Tipado estático |\n\n---\n\n## 🔍 API GraphQL\n\nLa API principal es **GraphQL** y está disponible en `POST /graphql`.\n\n### Queries Disponibles\n\n#### 1. Obtener todos los personajes\n```graphql\nquery {\n  characters {\n    id\n    name\n    status\n    species\n    gender\n    origin\n    image\n  }\n}\n```\n\n#### 2. Obtener personaje por ID\n```graphql\nquery {\n  character(id: 1) {\n    id\n    name\n    status\n    species\n    gender\n    origin\n    image\n  }\n}\n```\n\n#### 3. Buscar con filtros\n```graphql\nquery {\n  searchCharacters(filters: {\n    name: \"Rick\"\n    status: \"Alive\"\n    species: \"Human\"\n    gender: \"Male\"\n  }) {\n    id\n    name\n    status\n    species\n  }\n}\n```\n\n#### 4. Contar personajes\n```graphql\nquery {\n  characterCount\n}\n```\n\n### Mutations Disponibles\n\n#### Sincronizar personajes desde API externa\n```graphql\nmutation {\n  syncCharacters {\n    success\n    message\n    count\n  }\n}\n```\n\n---\n\n## ⚡ Sistema de Caché\n\n- **TTL**: 5 minutos (300 segundos)\n- **Estrategia**: Cache-aside con invalidación automática\n- **Mejora de rendimiento**: ~100x más rápido en cache hits\n\n---\n\n## 🔄 Cron Job\n\nEl sistema sincroniza automáticamente cada **12 horas** con la API de Rick & Morty.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Deimar Perea Moreno",
+      "url": "https://github.com/ddpeream",
+      "email": "ddpeream@github.com"
+    },
+    "license": {
+      "name": "ISC",
+      "url": "https://opensource.org/licenses/ISC"
+    }
+  },
+  "externalDocs": {
+    "description": "Documentación completa en GitHub",
+    "url": "https://github.com/ddpeream/test-backend-blossom#readme"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000",
+      "description": "🔧 Servidor de Desarrollo"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Endpoints de monitoreo y estado del servidor"
+    },
+    {
+      "name": "GraphQL",
+      "description": "API GraphQL para consulta de personajes"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health Check",
+        "description": "Verifica el estado del servidor, conexión a Redis y estado del cron job.\n\nEste endpoint es útil para:\n- Monitoreo de la aplicación\n- Verificar que todos los servicios están funcionando\n- Balanceadores de carga",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "Servidor funcionando correctamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                },
+                "examples": {
+                  "healthy": {
+                    "summary": "Todos los servicios activos",
+                    "value": {
+                      "status": "OK",
+                      "message": "Server is running 🚀",
+                      "redis": "connected",
+                      "cron": "running"
+                    }
+                  },
+                  "redis_down": {
+                    "summary": "Redis desconectado",
+                    "value": {
+                      "status": "OK",
+                      "message": "Server is running 🚀",
+                      "redis": "disconnected",
+                      "cron": "running"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/graphql": {
+      "get": {
+        "tags": ["GraphQL"],
+        "summary": "Apollo Playground",
+        "description": "Accede al Apollo GraphQL Playground para probar queries de forma interactiva.\n\n**Nota:** Este endpoint abre la interfaz visual de Apollo Studio.",
+        "operationId": "graphqlPlayground",
+        "responses": {
+          "200": {
+            "description": "Apollo Playground HTML"
+          }
+        }
+      },
+      "post": {
+        "tags": ["GraphQL"],
+        "summary": "Ejecutar Query/Mutation GraphQL",
+        "description": "Endpoint principal para ejecutar operaciones GraphQL.\n\n## Queries Disponibles\n\n| Query | Descripción | Parámetros |\n|-------|-------------|------------|\n| `characters` | Lista todos los personajes | - |\n| `character(id)` | Obtiene un personaje por ID | `id: Int!` |\n| `searchCharacters(filters)` | Busca con filtros | `filters: CharacterFilterInput` |\n| `characterCount` | Cuenta total de personajes | - |\n\n## Mutations Disponibles\n\n| Mutation | Descripción |\n|----------|-------------|\n| `syncCharacters` | Sincroniza 15 personajes desde la API externa |\n\n## Filtros de Búsqueda\n\n| Filtro | Tipo | Valores Ejemplo |\n|--------|------|------------------|\n| `name` | String | \"Rick\", \"Morty\" |\n| `status` | String | \"Alive\", \"Dead\", \"unknown\" |\n| `species` | String | \"Human\", \"Alien\" |\n| `gender` | String | \"Male\", \"Female\", \"Genderless\", \"unknown\" |\n| `origin` | String | \"Earth (C-137)\" |",
+        "operationId": "graphqlQuery",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphQLRequest"
+              },
+              "examples": {
+                "getAllCharacters": {
+                  "summary": "📋 Obtener todos los personajes",
+                  "description": "Retorna la lista completa de personajes en la base de datos",
+                  "value": {
+                    "query": "query GetAllCharacters {\n  characters {\n    id\n    name\n    status\n    species\n    gender\n    origin\n    image\n  }\n}"
+                  }
+                },
+                "getCharacterById": {
+                  "summary": "🔍 Obtener personaje por ID",
+                  "description": "Busca un personaje específico por su ID",
+                  "value": {
+                    "query": "query GetCharacter($id: Int!) {\n  character(id: $id) {\n    id\n    name\n    status\n    species\n    gender\n    origin\n    image\n    createdAt\n    updatedAt\n  }\n}",
+                    "variables": {
+                      "id": 1
+                    }
+                  }
+                },
+                "searchByName": {
+                  "summary": "🔎 Buscar por nombre",
+                  "description": "Busca personajes cuyo nombre contenga 'Rick'",
+                  "value": {
+                    "query": "query SearchByName {\n  searchCharacters(filters: { name: \"Rick\" }) {\n    id\n    name\n    status\n    species\n  }\n}"
+                  }
+                },
+                "searchWithMultipleFilters": {
+                  "summary": "🎯 Búsqueda con múltiples filtros",
+                  "description": "Busca humanos vivos de género masculino",
+                  "value": {
+                    "query": "query SearchFiltered($filters: CharacterFilterInput) {\n  searchCharacters(filters: $filters) {\n    id\n    name\n    status\n    species\n    gender\n    origin\n  }\n}",
+                    "variables": {
+                      "filters": {
+                        "status": "Alive",
+                        "species": "Human",
+                        "gender": "Male"
+                      }
+                    }
+                  }
+                },
+                "getCharacterCount": {
+                  "summary": "📊 Contar personajes",
+                  "description": "Obtiene el número total de personajes en la base de datos",
+                  "value": {
+                    "query": "query {\n  characterCount\n}"
+                  }
+                },
+                "syncCharacters": {
+                  "summary": "🔄 Sincronizar personajes",
+                  "description": "Sincroniza 15 personajes desde la API de Rick & Morty",
+                  "value": {
+                    "query": "mutation SyncFromAPI {\n  syncCharacters {\n    success\n    message\n    count\n  }\n}"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Respuesta GraphQL exitosa",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphQLResponse"
+                },
+                "examples": {
+                  "charactersResponse": {
+                    "summary": "Lista de personajes",
+                    "value": {
+                      "data": {
+                        "characters": [
+                          {
+                            "id": 1,
+                            "name": "Rick Sanchez",
+                            "status": "Alive",
+                            "species": "Human",
+                            "gender": "Male",
+                            "origin": "Earth (C-137)",
+                            "image": "https://rickandmortyapi.com/api/character/avatar/1.jpeg"
+                          },
+                          {
+                            "id": 2,
+                            "name": "Morty Smith",
+                            "status": "Alive",
+                            "species": "Human",
+                            "gender": "Male",
+                            "origin": "unknown",
+                            "image": "https://rickandmortyapi.com/api/character/avatar/2.jpeg"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "singleCharacterResponse": {
+                    "summary": "Un personaje",
+                    "value": {
+                      "data": {
+                        "character": {
+                          "id": 1,
+                          "name": "Rick Sanchez",
+                          "status": "Alive",
+                          "species": "Human",
+                          "gender": "Male",
+                          "origin": "Earth (C-137)",
+                          "image": "https://rickandmortyapi.com/api/character/avatar/1.jpeg"
+                        }
+                      }
+                    }
+                  },
+                  "syncResponse": {
+                    "summary": "Resultado de sincronización",
+                    "value": {
+                      "data": {
+                        "syncCharacters": {
+                          "success": true,
+                          "message": "Successfully synced 15 characters from Rick & Morty API",
+                          "count": 15
+                        }
+                      }
+                    }
+                  },
+                  "countResponse": {
+                    "summary": "Conteo de personajes",
+                    "value": {
+                      "data": {
+                        "characterCount": 15
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error en la query GraphQL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphQLError"
+                },
+                "example": {
+                  "errors": [
+                    {
+                      "message": "Syntax Error: Expected Name, found \"}\".",
+                      "locations": [{ "line": 1, "column": 10 }]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "description": "Estado del servidor y sus servicios",
+        "required": ["status", "message", "redis", "cron"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["OK"],
+            "description": "Estado general del servidor",
+            "example": "OK"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje descriptivo del estado",
+            "example": "Server is running 🚀"
+          },
+          "redis": {
+            "type": "string",
+            "enum": ["connected", "disconnected"],
+            "description": "Estado de conexión a Redis",
+            "example": "connected"
+          },
+          "cron": {
+            "type": "string",
+            "enum": ["running", "stopped"],
+            "description": "Estado del cron job de sincronización",
+            "example": "running"
+          }
+        }
+      },
+      "Character": {
+        "type": "object",
+        "description": "Personaje de Rick & Morty",
+        "required": ["id", "name", "status", "species", "gender"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "ID único del personaje (de la API original)",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre completo del personaje",
+            "example": "Rick Sanchez"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Alive", "Dead", "unknown"],
+            "description": "Estado vital del personaje",
+            "example": "Alive"
+          },
+          "species": {
+            "type": "string",
+            "description": "Especie del personaje",
+            "example": "Human",
+            "enum": ["Human", "Alien", "Humanoid", "Robot", "Animal", "Mythological Creature", "Poopybutthole", "Cronenberg", "Disease", "unknown"]
+          },
+          "type": {
+            "type": "string",
+            "nullable": true,
+            "description": "Subtipo específico del personaje",
+            "example": "Genetic experiment"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Male", "Female", "Genderless", "unknown"],
+            "description": "Género del personaje",
+            "example": "Male"
+          },
+          "origin": {
+            "type": "string",
+            "description": "Planeta o dimensión de origen",
+            "example": "Earth (C-137)"
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL de la imagen del personaje",
+            "example": "https://rickandmortyapi.com/api/character/avatar/1.jpeg"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de creación del registro"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de última actualización"
+          }
+        }
+      },
+      "CharacterFilterInput": {
+        "type": "object",
+        "description": "Filtros para búsqueda de personajes",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Búsqueda parcial por nombre (case-insensitive)",
+            "example": "Rick"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Alive", "Dead", "unknown"],
+            "description": "Filtrar por estado vital",
+            "example": "Alive"
+          },
+          "species": {
+            "type": "string",
+            "description": "Filtrar por especie",
+            "example": "Human"
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["Male", "Female", "Genderless", "unknown"],
+            "description": "Filtrar por género",
+            "example": "Male"
+          },
+          "origin": {
+            "type": "string",
+            "description": "Filtrar por origen",
+            "example": "Earth (C-137)"
+          }
+        }
+      },
+      "SyncResult": {
+        "type": "object",
+        "description": "Resultado de la operación de sincronización",
+        "required": ["success", "message"],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indica si la sincronización fue exitosa",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje descriptivo del resultado",
+            "example": "Successfully synced 15 characters from Rick & Morty API"
+          },
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Número de personajes sincronizados",
+            "example": 15
+          }
+        }
+      },
+      "GraphQLRequest": {
+        "type": "object",
+        "description": "Petición GraphQL",
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Query o mutation GraphQL a ejecutar",
+            "example": "query { characters { id name status } }"
+          },
+          "variables": {
+            "type": "object",
+            "description": "Variables para la query (opcional)",
+            "additionalProperties": true,
+            "example": {
+              "id": 1
+            }
+          },
+          "operationName": {
+            "type": "string",
+            "description": "Nombre de la operación a ejecutar (si hay múltiples)",
+            "example": "GetCharacter"
+          }
+        }
+      },
+      "GraphQLResponse": {
+        "type": "object",
+        "description": "Respuesta GraphQL estándar",
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Datos retornados por la query",
+            "additionalProperties": true
+          },
+          "errors": {
+            "type": "array",
+            "description": "Lista de errores (si los hay)",
+            "items": {
+              "$ref": "#/components/schemas/GraphQLErrorItem"
+            }
+          }
+        }
+      },
+      "GraphQLError": {
+        "type": "object",
+        "description": "Respuesta de error GraphQL",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GraphQLErrorItem"
+            }
+          }
+        }
+      },
+      "GraphQLErrorItem": {
+        "type": "object",
+        "description": "Detalle de un error GraphQL",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Mensaje de error",
+            "example": "Character with ID 999 not found"
+          },
+          "locations": {
+            "type": "array",
+            "description": "Ubicación del error en la query",
+            "items": {
+              "type": "object",
+              "properties": {
+                "line": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "column": {
+                  "type": "integer",
+                  "example": 10
+                }
+              }
+            }
+          },
+          "path": {
+            "type": "array",
+            "description": "Ruta al campo que causó el error",
+            "items": {
+              "type": "string"
+            },
+            "example": ["character"]
+          },
+          "extensions": {
+            "type": "object",
+            "description": "Información adicional del error",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "NOT_FOUND"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

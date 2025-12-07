@@ -1,11 +1,13 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
 import { testConnection } from './config/database';
 import { testRedisConnection } from './config/redis';
 import { loggingMiddleware } from './middlewares/logging.middleware';
 import { createApolloServer } from './graphql';
 import cacheService from './cache/cache.service';
 import syncCharactersJob from './jobs/syncCharacters.job';
+import swaggerDocument from './docs/swagger.json';
 
 dotenv.config();
 
@@ -15,6 +17,12 @@ const ENABLE_CRON = process.env.ENABLE_CRON !== 'false'; // Habilitado por defec
 
 app.use(express.json());
 app.use(loggingMiddleware);
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Rick & Morty API - Docs'
+}));
 
 // Health Check Endpoint
 app.get('/health', (req: Request, res: Response) => {

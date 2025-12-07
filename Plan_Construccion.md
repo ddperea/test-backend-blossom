@@ -40,4 +40,4 @@
 ## Fase 9: Documentación
 - [x] 22. README con instrucciones
 - [x] 23. Diagrama ERD
-- [ ] 24. Swagger (opcional)
+- [x] 24. Swagger (opcional)

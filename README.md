@@ -141,9 +141,26 @@ El servidor estará disponible en `http://localhost:4000`
 
 Accede a `http://localhost:4000/graphql` para el playground de Apollo.
 
-### Swagger Documentation
+## 📖 Swagger Documentation
 
-Accede a `http://localhost:4000/api-docs` para ver la documentación Swagger UI.
+Accede a **`http://localhost:4000/api-docs`** para ver la documentación interactiva Swagger UI.
+
+### ¿Qué encontrarás en Swagger?
+
+| Sección | Descripción |
+|---------|-------------|
+| **Info** | Información general de la API, versión y contacto |
+| **Health** | Endpoint `/health` para verificar estado del servidor |
+| **GraphQL** | Documentación del endpoint `/graphql` con ejemplos |
+| **Schemas** | Modelos de datos (Character, HealthResponse, etc.) |
+
+### Características de la Documentación
+
+- ✅ **Ejemplos interactivos**: Prueba los endpoints directamente desde Swagger
+- ✅ **Queries GraphQL**: Ejemplos de todas las queries disponibles
+- ✅ **Mutations**: Documentación de syncCharacters
+- ✅ **Modelos**: Schema completo del modelo Character
+- ✅ **Filtros**: Documentación de todos los filtros de búsqueda
 
 ### Queries Disponibles
 

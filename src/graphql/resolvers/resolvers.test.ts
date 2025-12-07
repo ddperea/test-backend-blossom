@@ -56,21 +56,39 @@ describe('GraphQL Resolvers', () => {
 
   describe('Query', () => {
     describe('characters', () => {
-      it('should return all characters', async () => {
-        (characterService.getAllCharacters as jest.Mock).mockResolvedValue(mockCharacters);
+      const mockPaginatedResponse = {
+        data: mockCharacters,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      };
 
-        const result = await resolvers.Query.characters();
+      it('should return paginated characters', async () => {
+        (characterService.getAllCharacters as jest.Mock).mockResolvedValue(mockPaginatedResponse);
 
-        expect(characterService.getAllCharacters).toHaveBeenCalledTimes(1);
-        expect(result).toEqual(mockCharacters);
+        const result = await resolvers.Query.characters(null, {});
+
+        expect(characterService.getAllCharacters).toHaveBeenCalledWith(undefined);
+        expect(result).toEqual(mockPaginatedResponse);
       });
 
-      it('should return empty array when no characters exist', async () => {
-        (characterService.getAllCharacters as jest.Mock).mockResolvedValue([]);
+      it('should return empty data when no characters exist', async () => {
+        const emptyResponse = { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+        (characterService.getAllCharacters as jest.Mock).mockResolvedValue(emptyResponse);
 
-        const result = await resolvers.Query.characters();
+        const result = await resolvers.Query.characters(null, {});
 
-        expect(result).toEqual([]);
+        expect(result.data).toEqual([]);
+        expect(result.total).toBe(0);
+      });
+
+      it('should pass pagination parameters', async () => {
+        (characterService.getAllCharacters as jest.Mock).mockResolvedValue(mockPaginatedResponse);
+
+        await resolvers.Query.characters(null, { pagination: { page: 2, limit: 10 } });
+
+        expect(characterService.getAllCharacters).toHaveBeenCalledWith({ page: 2, limit: 10 });
       });
     });
 
@@ -99,59 +117,101 @@ describe('GraphQL Resolvers', () => {
     describe('searchCharacters', () => {
       it('should search characters with filters', async () => {
         const filters = { name: 'Rick', status: 'Alive' };
-        (characterService.searchCharacters as jest.Mock).mockResolvedValue([mockCharacter]);
+        const paginatedResult = {
+          data: [mockCharacter],
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        };
+        (characterService.searchCharacters as jest.Mock).mockResolvedValue(paginatedResult);
 
         const result = await resolvers.Query.searchCharacters(null, { filters });
 
-        expect(characterService.searchCharacters).toHaveBeenCalledWith(filters);
-        expect(result).toEqual([mockCharacter]);
+        expect(characterService.searchCharacters).toHaveBeenCalledWith(filters, undefined);
+        expect(result).toEqual(paginatedResult);
       });
 
       it('should search with empty filters when not provided', async () => {
-        (characterService.searchCharacters as jest.Mock).mockResolvedValue(mockCharacters);
+        const paginatedResult = {
+          data: mockCharacters,
+          total: 2,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        };
+        (characterService.searchCharacters as jest.Mock).mockResolvedValue(paginatedResult);
 
         const result = await resolvers.Query.searchCharacters(null, {});
 
-        expect(characterService.searchCharacters).toHaveBeenCalledWith({});
-        expect(result).toEqual(mockCharacters);
+        expect(characterService.searchCharacters).toHaveBeenCalledWith({}, undefined);
+        expect(result).toEqual(paginatedResult);
       });
 
       it('should search with undefined filters', async () => {
-        (characterService.searchCharacters as jest.Mock).mockResolvedValue(mockCharacters);
+        const paginatedResult = {
+          data: mockCharacters,
+          total: 2,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        };
+        (characterService.searchCharacters as jest.Mock).mockResolvedValue(paginatedResult);
 
         const result = await resolvers.Query.searchCharacters(null, { filters: undefined });
 
-        expect(characterService.searchCharacters).toHaveBeenCalledWith({});
-        expect(result).toEqual(mockCharacters);
+        expect(characterService.searchCharacters).toHaveBeenCalledWith({}, undefined);
+        expect(result).toEqual(paginatedResult);
       });
 
       it('should filter by single field', async () => {
         const filters = { species: 'Human' };
-        (characterService.searchCharacters as jest.Mock).mockResolvedValue(mockCharacters);
+        const paginatedResult = {
+          data: mockCharacters,
+          total: 2,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        };
+        (characterService.searchCharacters as jest.Mock).mockResolvedValue(paginatedResult);
 
         const result = await resolvers.Query.searchCharacters(null, { filters });
 
-        expect(characterService.searchCharacters).toHaveBeenCalledWith(filters);
-        expect(result).toEqual(mockCharacters);
+        expect(characterService.searchCharacters).toHaveBeenCalledWith(filters, undefined);
+        expect(result).toEqual(paginatedResult);
       });
 
       it('should filter by multiple fields', async () => {
         const filters = { name: 'Rick', status: 'Alive', species: 'Human', gender: 'Male' };
-        (characterService.searchCharacters as jest.Mock).mockResolvedValue([mockCharacter]);
+        const paginatedResult = {
+          data: [mockCharacter],
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        };
+        (characterService.searchCharacters as jest.Mock).mockResolvedValue(paginatedResult);
 
         const result = await resolvers.Query.searchCharacters(null, { filters });
 
-        expect(characterService.searchCharacters).toHaveBeenCalledWith(filters);
-        expect(result).toEqual([mockCharacter]);
+        expect(characterService.searchCharacters).toHaveBeenCalledWith(filters, undefined);
+        expect(result).toEqual(paginatedResult);
       });
 
       it('should return empty array when no matches', async () => {
         const filters = { name: 'NonexistentCharacter' };
-        (characterService.searchCharacters as jest.Mock).mockResolvedValue([]);
+        const paginatedResult = {
+          data: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        };
+        (characterService.searchCharacters as jest.Mock).mockResolvedValue(paginatedResult);
 
         const result = await resolvers.Query.searchCharacters(null, { filters });
 
-        expect(result).toEqual([]);
+        expect(result).toEqual(paginatedResult);
       });
     });
 

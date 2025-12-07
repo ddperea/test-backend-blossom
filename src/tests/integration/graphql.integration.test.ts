@@ -51,17 +51,23 @@ describe('GraphQL Integration Tests', () => {
   });
 
   describe('Query: characters', () => {
-    it('should return all characters', async () => {
+    it('should return paginated characters', async () => {
       const query = `
         query {
           characters {
-            id
-            name
-            status
-            species
-            gender
-            origin
-            image
+            data {
+              id
+              name
+              status
+              species
+              gender
+              origin
+              image
+            }
+            total
+            page
+            limit
+            totalPages
           }
         }
       `;
@@ -73,20 +79,25 @@ describe('GraphQL Integration Tests', () => {
 
       expect(response.body.errors).toBeUndefined();
       expect(response.body.data.characters).toBeDefined();
-      expect(Array.isArray(response.body.data.characters)).toBe(true);
-      expect(response.body.data.characters.length).toBeGreaterThanOrEqual(15);
+      expect(response.body.data.characters.data).toBeDefined();
+      expect(Array.isArray(response.body.data.characters.data)).toBe(true);
+      expect(response.body.data.characters.total).toBeGreaterThanOrEqual(15);
+      expect(response.body.data.characters.page).toBe(1);
+      expect(response.body.data.characters.limit).toBe(20);
     });
 
     it('should return characters with all required fields', async () => {
       const query = `
         query {
           characters {
-            id
-            name
-            status
-            species
-            gender
-            origin
+            data {
+              id
+              name
+              status
+              species
+              gender
+              origin
+            }
           }
         }
       `;
@@ -96,13 +107,39 @@ describe('GraphQL Integration Tests', () => {
         .send({ query })
         .expect(200);
 
-      const character = response.body.data.characters[0];
+      const character = response.body.data.characters.data[0];
       expect(character.id).toBeDefined();
       expect(character.name).toBeDefined();
       expect(character.status).toBeDefined();
       expect(character.species).toBeDefined();
       expect(character.gender).toBeDefined();
       expect(character.origin).toBeDefined();
+    });
+
+    it('should support pagination parameters', async () => {
+      const query = `
+        query {
+          characters(pagination: { page: 1, limit: 5 }) {
+            data {
+              id
+              name
+            }
+            total
+            page
+            limit
+            totalPages
+          }
+        }
+      `;
+
+      const response = await request(app)
+        .post('/graphql')
+        .send({ query })
+        .expect(200);
+
+      expect(response.body.data.characters.data.length).toBeLessThanOrEqual(5);
+      expect(response.body.data.characters.page).toBe(1);
+      expect(response.body.data.characters.limit).toBe(5);
     });
   });
 
@@ -130,9 +167,12 @@ describe('GraphQL Integration Tests', () => {
     });
 
     it('should return null for non-existent character', async () => {
+      // Usar ID muy alto que no existe en la BD y limpiar caché
+      await cacheService.invalidateAll();
+      
       const query = `
         query {
-          character(id: 99999) {
+          character(id: 999999999) {
             id
             name
           }
@@ -153,9 +193,12 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           searchCharacters(filters: { name: "Rick" }) {
-            id
-            name
-            status
+            data {
+              id
+              name
+              status
+            }
+            total
           }
         }
       `;
@@ -166,7 +209,7 @@ describe('GraphQL Integration Tests', () => {
         .expect(200);
 
       expect(response.body.errors).toBeUndefined();
-      const characters = response.body.data.searchCharacters;
+      const characters = response.body.data.searchCharacters.data;
       expect(characters.length).toBeGreaterThanOrEqual(1);
       
       // Todos los resultados deben contener "Rick"
@@ -179,9 +222,11 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           searchCharacters(filters: { status: "Alive" }) {
-            id
-            name
-            status
+            data {
+              id
+              name
+              status
+            }
           }
         }
       `;
@@ -192,7 +237,7 @@ describe('GraphQL Integration Tests', () => {
         .expect(200);
 
       expect(response.body.errors).toBeUndefined();
-      const characters = response.body.data?.searchCharacters || [];
+      const characters = response.body.data?.searchCharacters?.data || [];
       expect(Array.isArray(characters)).toBe(true);
       characters.forEach((char: any) => {
         expect(char.status).toBe('Alive');
@@ -203,9 +248,11 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           searchCharacters(filters: { species: "Human" }) {
-            id
-            name
-            species
+            data {
+              id
+              name
+              species
+            }
           }
         }
       `;
@@ -215,7 +262,7 @@ describe('GraphQL Integration Tests', () => {
         .send({ query })
         .expect(200);
 
-      const characters = response.body.data.searchCharacters;
+      const characters = response.body.data.searchCharacters.data;
       characters.forEach((char: any) => {
         expect(char.species).toBe('Human');
       });
@@ -225,9 +272,11 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           searchCharacters(filters: { gender: "Male" }) {
-            id
-            name
-            gender
+            data {
+              id
+              name
+              gender
+            }
           }
         }
       `;
@@ -237,7 +286,7 @@ describe('GraphQL Integration Tests', () => {
         .send({ query })
         .expect(200);
 
-      const characters = response.body.data.searchCharacters;
+      const characters = response.body.data.searchCharacters.data;
       characters.forEach((char: any) => {
         expect(char.gender).toBe('Male');
       });
@@ -247,9 +296,11 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           searchCharacters(filters: { origin: "Earth" }) {
-            id
-            name
-            origin
+            data {
+              id
+              name
+              origin
+            }
           }
         }
       `;
@@ -259,7 +310,7 @@ describe('GraphQL Integration Tests', () => {
         .send({ query })
         .expect(200);
 
-      const characters = response.body.data.searchCharacters;
+      const characters = response.body.data.searchCharacters.data;
       characters.forEach((char: any) => {
         expect(char.origin.toLowerCase()).toContain('earth');
       });
@@ -273,11 +324,13 @@ describe('GraphQL Integration Tests', () => {
             species: "Human",
             gender: "Male"
           }) {
-            id
-            name
-            status
-            species
-            gender
+            data {
+              id
+              name
+              status
+              species
+              gender
+            }
           }
         }
       `;
@@ -287,7 +340,7 @@ describe('GraphQL Integration Tests', () => {
         .send({ query })
         .expect(200);
 
-      const characters = response.body.data.searchCharacters;
+      const characters = response.body.data.searchCharacters.data;
       characters.forEach((char: any) => {
         expect(char.status).toBe('Alive');
         expect(char.species).toBe('Human');
@@ -299,8 +352,11 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           searchCharacters(filters: { name: "XYZNONEXISTENT123" }) {
-            id
-            name
+            data {
+              id
+              name
+            }
+            total
           }
         }
       `;
@@ -310,7 +366,37 @@ describe('GraphQL Integration Tests', () => {
         .send({ query })
         .expect(200);
 
-      expect(response.body.data.searchCharacters).toEqual([]);
+      expect(response.body.data.searchCharacters.data).toEqual([]);
+      expect(response.body.data.searchCharacters.total).toBe(0);
+    });
+
+    it('should support pagination with filters', async () => {
+      const query = `
+        query {
+          searchCharacters(
+            filters: { status: "Alive" },
+            pagination: { page: 1, limit: 2 }
+          ) {
+            data {
+              id
+              name
+            }
+            total
+            page
+            limit
+            totalPages
+          }
+        }
+      `;
+
+      const response = await request(app)
+        .post('/graphql')
+        .send({ query })
+        .expect(200);
+
+      expect(response.body.data.searchCharacters.data.length).toBeLessThanOrEqual(2);
+      expect(response.body.data.searchCharacters.page).toBe(1);
+      expect(response.body.data.searchCharacters.limit).toBe(2);
     });
   });
 
@@ -338,8 +424,10 @@ describe('GraphQL Integration Tests', () => {
       const query = `
         query {
           characters {
-            id
-            name
+            data {
+              id
+              name
+            }
           }
         }
       `;

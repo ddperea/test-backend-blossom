@@ -15,6 +15,7 @@ const redisConfig = {
   retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
   lazyConnect: true, // No conectar automáticamente
+  connectTimeout: 10000, // 10 segundos timeout
 };
 
 // Crear instancia de Redis
@@ -41,17 +42,18 @@ redis.on('close', () => {
 });
 
 /**
- * Función para verificar la conexión a Redis
+ * Verifica la conexión a Redis
+ * @throws Error si la conexión falla (fail-fast)
  */
-export async function testRedisConnection(): Promise<boolean> {
+export async function testRedisConnection(): Promise<void> {
   try {
     await redis.connect();
     const pong = await redis.ping();
-    console.log(`✅ Redis PING response: ${pong}`);
-    return true;
+    console.log(`✅ Redis: PING response: ${pong}`);
   } catch (error) {
-    console.error('❌ Redis connection failed:', (error as Error).message);
-    return false;
+    console.error('❌ Redis: Connection failed');
+    console.error((error as Error).message);
+    throw error; // Fail-fast: propagar error para detener el servidor
   }
 }
 

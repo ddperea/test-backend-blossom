@@ -13,6 +13,7 @@ API GraphQL para buscar personajes de Rick & Morty con caché en Redis y base de
 - [API GraphQL](#-api-graphql)
 - [Tests](#-tests)
 - [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Tipos TypeScript](#-tipos-typescript)
 
 ## 🛠 Tecnologías
 
@@ -135,9 +136,9 @@ El servidor estará disponible en `http://localhost:4000`
 | `dev` | `npm run dev` | Servidor con hot-reload (tsx watch) |
 | `build` | `npm run build` | Compilar TypeScript a JavaScript |
 | `start` | `npm start` | Ejecutar build de producción |
-| `test` | `npm test` | Ejecutar tests unitarios (119) |
-| `test:integration` | `npm run test:integration` | Tests de integración (44) |
-| `test:all` | `npm run test:all` | Todos los tests (163) |
+| `test` | `npm test` | Ejecutar todos los tests (169) |
+| `test:integration` | `npm run test:integration` | Tests de integración (50) |
+| `test:all` | `npm run test:all` | Todos los tests (169) |
 | `seed` | `npm run seed` | Poblar BD con datos iniciales |
 | `migrate` | `npm run migrate` | Ejecutar migraciones |
 | `migrate:undo` | `npm run migrate:undo` | Revertir última migración |
@@ -180,17 +181,23 @@ Accede a **`http://localhost:4000/api-docs`** para ver la documentación interac
 
 ### Queries Disponibles
 
-#### Obtener todos los personajes
+#### Obtener todos los personajes (con paginación)
 ```graphql
 query {
-  characters {
-    id
-    name
-    status
-    species
-    gender
-    origin
-    image
+  characters(pagination: { page: 1, limit: 10 }) {
+    data {
+      id
+      name
+      status
+      species
+      gender
+      origin
+      image
+    }
+    total
+    page
+    limit
+    totalPages
   }
 }
 ```
@@ -207,19 +214,28 @@ query {
 }
 ```
 
-#### Buscar con filtros
+#### Buscar con filtros y paginación
 ```graphql
 query {
   searchCharacters(
-    name: "Rick"
-    status: "Alive"
-    species: "Human"
-    gender: "Male"
+    filters: {
+      name: "Rick"
+      status: "Alive"
+      species: "Human"
+      gender: "Male"
+    }
+    pagination: { page: 1, limit: 10 }
   ) {
-    id
-    name
-    status
-    origin
+    data {
+      id
+      name
+      status
+      origin
+    }
+    total
+    page
+    limit
+    totalPages
   }
 }
 ```
@@ -237,9 +253,9 @@ query {
 ```graphql
 mutation {
   syncCharacters {
-    id
-    name
-    status
+    success
+    message
+    count
   }
 }
 ```
@@ -256,7 +272,7 @@ mutation {
 
 ## 🧪 Tests
 
-El proyecto cuenta con **163 tests** divididos en unitarios e integración.
+El proyecto cuenta con **169 tests** divididos en unitarios e integración.
 
 ### Ejecutar Tests
 
@@ -309,6 +325,9 @@ src/
 │   ├── database.ts           # Conexión PostgreSQL
 │   ├── redis.ts              # Conexión Redis
 │   └── sequelize.config.js   # Config para CLI Sequelize
+├── types/
+│   ├── character.types.ts    # Tipos e interfaces TypeScript
+│   └── index.ts              # Barrel export
 ├── models/
 │   └── Character.ts          # Modelo Sequelize
 ├── repositories/
@@ -401,6 +420,102 @@ Los métodos del servicio están decorados con `@ExecutionTime`:
 | image | STRING | URL de imagen |
 | createdAt | DATE | Fecha creación |
 | updatedAt | DATE | Fecha actualización |
+
+## 📐 Tipos TypeScript
+
+El proyecto utiliza tipos e interfaces centralizados en `src/types/` para garantizar type-safety en toda la aplicación.
+
+### Tipos Principales
+
+```typescript
+// Atributos base de un personaje
+interface CharacterAttributes {
+  id: number;
+  name: string;
+  status: string;
+  species: string;
+  type?: string;
+  gender: string;
+  origin: string;
+  image: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Filtros de búsqueda
+interface CharacterFilters {
+  name?: string;
+  status?: string;
+  species?: string;
+  gender?: string;
+  origin?: string;
+}
+
+// Input de paginación (GraphQL)
+interface PaginationInput {
+  page?: number;
+  limit?: number;
+}
+
+// Respuesta paginada
+interface PaginatedCharacterResponse {
+  data: PlainCharacter[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+```
+
+### Tipos GraphQL
+
+```graphql
+# Tipo Character
+type Character {
+  id: Int!
+  name: String!
+  status: String!
+  species: String!
+  type: String
+  gender: String!
+  origin: String
+  image: String
+  createdAt: String
+  updatedAt: String
+}
+
+# Input para filtros
+input CharacterFilterInput {
+  name: String
+  status: String
+  species: String
+  gender: String
+  origin: String
+}
+
+# Input para paginación
+input PaginationInput {
+  page: Int
+  limit: Int
+}
+
+# Respuesta paginada
+type PaginatedCharacters {
+  data: [Character!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  totalPages: Int!
+}
+```
+
+### Ubicación de Archivos
+
+| Archivo | Descripción |
+|---------|-------------|
+| `src/types/character.types.ts` | Todos los tipos de Character |
+| `src/types/index.ts` | Barrel export de tipos |
+| `src/graphql/schemas/schema.ts` | Definiciones GraphQL |
 
 ## 👤 Autor
 

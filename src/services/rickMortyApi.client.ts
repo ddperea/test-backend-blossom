@@ -1,4 +1,8 @@
 import dotenv from 'dotenv';
+import { RickMortyCharacter, RickMortyApiResponse } from '../types/character.types';
+
+// Re-exportamos para mantener compatibilidad con imports existentes
+export { RickMortyCharacter };
 
 dotenv.config();
 
@@ -32,38 +36,6 @@ const GET_CHARACTERS_QUERY = `
 `;
 
 /**
- * Interfaz para los datos de personaje de la API externa
- */
-export interface RickMortyCharacter {
-  id: string;
-  name: string;
-  status: string;
-  species: string;
-  type: string;
-  gender: string;
-  origin: {
-    name: string;
-  };
-  image: string;
-}
-
-/**
- * Interfaz para la respuesta de la API
- */
-interface CharactersResponse {
-  data: {
-    characters: {
-      info: {
-        next: number | null;
-        pages: number;
-        count: number;
-      };
-      results: RickMortyCharacter[];
-    };
-  };
-}
-
-/**
  * Cliente para consumir la API GraphQL de Rick & Morty
  * Encapsula toda la lógica de comunicación con la API externa
  */
@@ -88,7 +60,7 @@ class RickMortyApiClient {
         }),
       });
 
-      const result = (await response.json()) as CharactersResponse;
+      const result = (await response.json()) as RickMortyApiResponse;
 
       if (!result.data || !result.data.characters) {
         throw new Error('Invalid response from Rick & Morty API');
@@ -130,7 +102,7 @@ class RickMortyApiClient {
           }),
         });
 
-        const result = (await response.json()) as CharactersResponse;
+        const result = (await response.json()) as RickMortyApiResponse;
 
         if (!result.data || !result.data.characters) {
           break;

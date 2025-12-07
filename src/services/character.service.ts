@@ -1,7 +1,16 @@
-import characterRepository, { CharacterFilters } from '../repositories/character.repository';
+import characterRepository from '../repositories/character.repository';
 import Character from '../models/Character';
 import cacheService from '../cache/cache.service';
 import { ExecutionTime } from '../decorators/executionTime.decorator';
+import { PlainCharacter, CharacterFilters, PaginationInput, PaginatedCharacterResponse } from '../types/character.types';
+
+// Re-exportamos para mantener compatibilidad con imports existentes
+export { PlainCharacter };
+
+// Valores por defecto para paginación
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
 
 /**
  * Service de Characters
@@ -11,35 +20,63 @@ import { ExecutionTime } from '../decorators/executionTime.decorator';
  */
 class CharacterService {
   /**
-   * Obtiene todos los personajes
+   * Normaliza los parámetros de paginación
+   */
+  private normalizePagination(pagination?: PaginationInput): { page: number; limit: number; offset: number } {
+    const page = Math.max(1, pagination?.page || DEFAULT_PAGE);
+    const limit = Math.min(MAX_LIMIT, Math.max(1, pagination?.limit || DEFAULT_LIMIT));
+    const offset = (page - 1) * limit;
+    return { page, limit, offset };
+  }
+
+  /**
+   * Obtiene todos los personajes con paginación
    * Primero busca en caché, si no existe, consulta BD y guarda en caché
+   * Retorna objetos planos (no instancias Sequelize) para compatibilidad con GraphQL
    */
   @ExecutionTime('CharacterService.getAllCharacters')
-  async getAllCharacters(): Promise<Character[]> {
+  async getAllCharacters(pagination?: PaginationInput): Promise<PaginatedCharacterResponse> {
+    const { page, limit, offset } = this.normalizePagination(pagination);
+    
+    // Generar clave de caché que incluye paginación
+    const cacheKey = { _page: page, _limit: limit };
+    
     // Intentar obtener del caché
-    const cached = await cacheService.getCharactersByFilters<Character[]>({});
+    const cached = await cacheService.getCharactersByFilters<PaginatedCharacterResponse>(cacheKey);
     if (cached) {
       return cached;
     }
 
     // Si no está en caché, consultar BD
-    const characters = await characterRepository.findAll();
+    const { rows, count } = await characterRepository.findAll({ offset, limit });
+    
+    // Convertir a objetos planos para compatibilidad con GraphQL
+    const plainCharacters = rows.map(c => c.toJSON() as PlainCharacter);
+    
+    const response: PaginatedCharacterResponse = {
+      data: plainCharacters,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+    };
     
     // Guardar en caché para futuras consultas
-    await cacheService.setCharactersByFilters({}, characters);
+    await cacheService.setCharactersByFilters(cacheKey, response);
     
-    return characters;
+    return response;
   }
 
   /**
    * Obtiene un personaje por su ID
    * Primero busca en caché, si no existe, consulta BD y guarda en caché
+   * Retorna objeto plano para compatibilidad con GraphQL
    * @throws Error si el personaje no existe
    */
   @ExecutionTime('CharacterService.getCharacterById')
-  async getCharacterById(id: number): Promise<Character> {
+  async getCharacterById(id: number): Promise<PlainCharacter> {
     // Intentar obtener del caché
-    const cached = await cacheService.getCharacterById<Character>(id);
+    const cached = await cacheService.getCharacterById<PlainCharacter>(id);
     if (cached) {
       return cached;
     }
@@ -51,37 +88,52 @@ class CharacterService {
       throw new Error(`Character with ID ${id} not found`);
     }
 
-    // Guardar en caché para futuras consultas
-    await cacheService.setCharacterById(id, character);
+    // Convertir a objeto plano para compatibilidad con GraphQL
+    const plainCharacter = character.toJSON() as PlainCharacter;
     
-    return character;
+    // Guardar en caché para futuras consultas
+    await cacheService.setCharacterById(id, plainCharacter);
+    
+    return plainCharacter;
   }
 
   /**
-   * Busca personajes con filtros opcionales
+   * Busca personajes con filtros opcionales y paginación
    * Filtros disponibles: name, status, species, gender, origin
-   * Los resultados se cachean por combinación de filtros
+   * Los resultados se cachean por combinación de filtros + paginación
+   * Retorna objetos planos para compatibilidad con GraphQL
    */
   @ExecutionTime('CharacterService.searchCharacters')
-  async searchCharacters(filters: CharacterFilters): Promise<Character[]> {
-    // Si no hay filtros, usar getAllCharacters (que ya tiene caché)
-    if (!filters || Object.keys(filters).length === 0) {
-      return this.getAllCharacters();
-    }
+  async searchCharacters(filters: CharacterFilters, pagination?: PaginationInput): Promise<PaginatedCharacterResponse> {
+    const { page, limit, offset } = this.normalizePagination(pagination);
+    
+    // Generar clave de caché que incluye filtros y paginación
+    const cacheKey = { ...filters, _page: page, _limit: limit };
 
     // Intentar obtener del caché
-    const cached = await cacheService.getCharactersByFilters<Character[]>(filters);
+    const cached = await cacheService.getCharactersByFilters<PaginatedCharacterResponse>(cacheKey);
     if (cached) {
       return cached;
     }
 
     // Si no está en caché, consultar BD
-    const characters = await characterRepository.findWithFilters(filters);
+    const { rows, count } = await characterRepository.findWithFilters(filters, { offset, limit });
+    
+    // Convertir a objetos planos para compatibilidad con GraphQL
+    const plainCharacters = rows.map(c => c.toJSON() as PlainCharacter);
+    
+    const response: PaginatedCharacterResponse = {
+      data: plainCharacters,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit),
+    };
     
     // Guardar en caché para futuras consultas
-    await cacheService.setCharactersByFilters(filters, characters);
+    await cacheService.setCharactersByFilters(cacheKey, response);
     
-    return characters;
+    return response;
   }
 
   /**

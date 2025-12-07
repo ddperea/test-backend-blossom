@@ -34,7 +34,10 @@ redis.on('error', (error) => {
 });
 
 redis.on('close', () => {
-  console.log('🔴 Redis: Connection closed');
+  // Evitar log en ambiente de test para prevenir warnings de Jest
+  if (process.env.NODE_ENV !== 'test') {
+    console.log('🔴 Redis: Connection closed');
+  }
 });
 
 /**

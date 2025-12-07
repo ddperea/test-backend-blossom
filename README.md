@@ -19,13 +19,15 @@ API GraphQL para buscar personajes de Rick & Morty con caché en Redis y base de
 | Tecnología | Versión | Descripción |
 |------------|---------|-------------|
 | Node.js | 18+ | Runtime de JavaScript |
-| TypeScript | 5.x | Tipado estático |
-| Express | 5.x | Framework web |
-| Apollo Server | 4.x | Servidor GraphQL |
-| Sequelize | 6.x | ORM para PostgreSQL |
+| TypeScript | 5.9.3 | Tipado estático |
+| Express | 5.2.1 | Framework web |
+| Apollo Server | 4.12.2 | Servidor GraphQL |
+| Sequelize | 6.37.7 | ORM para PostgreSQL |
 | PostgreSQL | 14+ | Base de datos (Supabase) |
-| Redis | 7.x | Caché en memoria |
-| Jest | 29.x | Framework de testing |
+| Redis (ioredis) | 5.8.2 | Cliente Redis para Node.js |
+| Jest | 30.2.0 | Framework de testing |
+| node-cron | 4.2.1 | Scheduler para cron jobs |
+| Swagger UI | 5.0.1 | Documentación API REST |
 
 ## 🏗 Arquitectura
 
@@ -125,6 +127,20 @@ npm start
 ```
 
 El servidor estará disponible en `http://localhost:4000`
+
+### Scripts Disponibles
+
+| Script | Comando | Descripción |
+|--------|---------|-------------|
+| `dev` | `npm run dev` | Servidor con hot-reload (tsx watch) |
+| `build` | `npm run build` | Compilar TypeScript a JavaScript |
+| `start` | `npm start` | Ejecutar build de producción |
+| `test` | `npm test` | Ejecutar tests unitarios (119) |
+| `test:integration` | `npm run test:integration` | Tests de integración (44) |
+| `test:all` | `npm run test:all` | Todos los tests (163) |
+| `seed` | `npm run seed` | Poblar BD con datos iniciales |
+| `migrate` | `npm run migrate` | Ejecutar migraciones |
+| `migrate:undo` | `npm run migrate:undo` | Revertir última migración |
 
 ### Endpoints
 
@@ -240,57 +256,100 @@ mutation {
 
 ## 🧪 Tests
 
-### Ejecutar todos los tests
+El proyecto cuenta con **163 tests** divididos en unitarios e integración.
+
+### Ejecutar Tests
+
 ```bash
+# Tests unitarios (119 tests)
 npm test
-```
 
-### Modo watch
-```bash
+# Tests de integración (44 tests) - requiere PostgreSQL y Redis
+npm run test:integration
+
+# Todos los tests (163 tests)
+npm run test:all
+
+# Modo watch (desarrollo)
 npm run test:watch
-```
 
-### Con cobertura
-```bash
+# Con cobertura
 npm run test:coverage
 ```
 
-### Tests Incluidos
+### Resumen de Tests
 
-- **ExecutionTime Decorator** (5 tests)
-- **Cache Service** (11 tests)
-- **Rick & Morty API Client** (4 tests)
+### Tests Unitarios (119 tests)
+
+| Suite | Tests | Descripción |
+|-------|-------|-------------|
+| Character Repository | 21 | CRUD completo, filtros, búsqueda |
+| Character Service | 21 | Lógica de negocio, integración cache |
+| GraphQL Resolvers | 17 | Queries y mutations |
+| Sync Characters Job | 16 | Cron job lifecycle |
+| Logging Middleware | 24 | HTTP methods, status codes |
+| Cache Service | 11 | Operaciones Redis |
+| ExecutionTime Decorator | 5 | Medición de rendimiento |
+| Rick & Morty API Client | 4 | Integración API externa |
+
+### Tests de Integración (44 tests)
+
+| Suite | Tests | Descripción |
+|-------|-------|-------------|
+| Database Integration | 12 | PostgreSQL real, CRUD, transacciones |
+| Redis Integration | 17 | Cache real, TTL, invalidación |
+| GraphQL Integration | 15 | Apollo Server + Express stack completo |
 
 ## 📁 Estructura del Proyecto
 
 ```
 src/
-├── app.ts                    # Punto de entrada
+├── app.ts                    # Punto de entrada principal
 ├── config/
 │   ├── database.ts           # Conexión PostgreSQL
-│   └── redis.ts              # Conexión Redis
+│   ├── redis.ts              # Conexión Redis
+│   └── sequelize.config.js   # Config para CLI Sequelize
 ├── models/
 │   └── Character.ts          # Modelo Sequelize
 ├── repositories/
-│   └── character.repository.ts
+│   ├── character.repository.ts
+│   └── character.repository.test.ts
 ├── services/
 │   ├── character.service.ts
-│   └── rickMortyApi.client.ts
+│   ├── character.service.test.ts
+│   ├── rickMortyApi.client.ts
+│   └── rickMortyApi.client.test.ts
 ├── cache/
-│   └── cache.service.ts      # Servicio de caché Redis
+│   ├── cache.service.ts      # Servicio de caché Redis
+│   └── cache.service.test.ts
 ├── graphql/
-│   ├── schema.ts             # Type definitions
-│   ├── resolvers.ts          # Resolvers
-│   └── index.ts              # Apollo Server setup
+│   ├── index.ts              # Apollo Server setup
+│   ├── resolvers/
+│   │   ├── resolvers.ts      # Query & Mutation resolvers
+│   │   └── resolvers.test.ts
+│   └── schemas/
+│       └── schema.ts         # Type definitions GraphQL
 ├── decorators/
-│   └── executionTime.decorator.ts
+│   ├── executionTime.decorator.ts
+│   └── executionTime.decorator.test.ts
 ├── jobs/
-│   └── syncCharacters.job.ts # Cron cada 12h
+│   ├── syncCharacters.job.ts # Cron cada 12h
+│   └── syncCharacters.job.test.ts
 ├── middlewares/
-│   └── logging.middleware.ts
+│   ├── logging.middleware.ts
+│   └── logging.middleware.test.ts
+├── database/
+│   └── migrations/           # Migraciones Sequelize
+├── docs/
+│   ├── swagger.json          # OpenAPI 3.0 specification
+│   └── ERD.md                # Diagrama entidad-relación
 ├── scripts/
-│   └── seed.ts               # Seeder inicial
-└── tests/                    # Tests unitarios
+│   └── seed.ts               # Seeder inicial programático
+└── tests/
+    └── integration/          # Tests de integración
+        ├── database.integration.test.ts
+        ├── redis.integration.test.ts
+        └── graphql.integration.test.ts
 ```
 
 ## 🔄 Cron Job
@@ -342,17 +401,6 @@ Los métodos del servicio están decorados con `@ExecutionTime`:
 | image | STRING | URL de imagen |
 | createdAt | DATE | Fecha creación |
 | updatedAt | DATE | Fecha actualización |
-
-## 📝 Scripts Disponibles
-
-| Comando | Descripción |
-|---------|-------------|
-| `npm run dev` | Desarrollo con hot reload |
-| `npm start` | Producción |
-| `npm run seed` | Poblar BD con 15 personajes |
-| `npm test` | Ejecutar tests |
-| `npm run test:watch` | Tests en modo watch |
-| `npm run test:coverage` | Tests con cobertura |
 
 ## 👤 Autor
 

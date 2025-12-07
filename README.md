@@ -81,7 +81,7 @@ cp .env.example .env
 # Editar .env con tus credenciales
 ```
 
-   Nota: el archivo `.env` con las credenciales ya fue enviado al evaluador junto con el test; si lo necesitas solo colocalo en la raiz del proyecto.
+   Nota: El archivo .env con las credenciales necesarias fue enviado al evaluador junto con la prueba técnica. Para ejecutar el proyecto localmente, solo colóquelo en la raíz del repositorio.
 
 4. **Iniciar Redis con Docker**
 ```bash

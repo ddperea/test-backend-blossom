@@ -7,21 +7,24 @@ src/
 │   ├── database.ts                     # Conexión PostgreSQL (Supabase)
 │   ├── redis.ts                        # Conexión Redis
 │   └── sequelize.config.js             # Configuración CLI Sequelize
+├── types/
+│   ├── character.types.ts              # Tipos e interfaces TypeScript
+│   └── index.ts                        # Barrel export de tipos
 ├── models/
 │   └── Character.ts                    # Modelo Sequelize
 ├── repositories/
 │   ├── character.repository.ts         # Patrón Repository
-│   └── character.repository.test.ts    # 21 tests unitarios
+│   └── character.repository.test.ts    # 23 tests unitarios
 ├── services/
 │   ├── character.service.ts            # Lógica de negocio + caché
-│   ├── character.service.test.ts       # 21 tests unitarios
+│   ├── character.service.test.ts       # 22 tests unitarios
 │   ├── rickMortyApi.client.ts          # Cliente API externa
 │   └── rickMortyApi.client.test.ts     # 4 tests unitarios
 ├── graphql/
 │   ├── index.ts                        # Apollo Server setup
 │   ├── resolvers/
 │   │   ├── resolvers.ts                # Query & Mutation resolvers
-│   │   └── resolvers.test.ts           # 17 tests unitarios
+│   │   └── resolvers.test.ts           # 18 tests unitarios
 │   └── schemas/
 │       └── schema.ts                   # Type definitions GraphQL
 ├── cache/
@@ -48,7 +51,7 @@ src/
     └── integration/
         ├── database.integration.test.ts  # 12 tests integración
         ├── redis.integration.test.ts     # 17 tests integración
-        └── graphql.integration.test.ts   # 15 tests integración
+        └── graphql.integration.test.ts   # 17 tests integración
 ```
 
 ## Resumen de Tests
@@ -56,8 +59,8 @@ src/
 | Tipo | Cantidad |
 |------|----------|
 | Tests Unitarios | 119 |
-| Tests de Integración | 44 |
-| **Total** | **163** |
+| Tests de Integración | 50 |
+| **Total** | **169** |
 
 ---
 
